@@ -1,19 +1,38 @@
 export function normalizeText(value: string): string {
-  return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-// Gemini sometimes returns estimatedTime as a string — this safely coerces it.
+// The model sometimes returns numbers as a string — this safely coerces it.
 export function castInt(v: unknown): number {
   const n = parseInt(String(v), 10);
   return Number.isNaN(n) ? 0 : n;
 }
 
-// Grid layout: positions 0 and 3 (mod 4) span 2 columns.
-export function isWideCard(index: number): boolean {
+/** Keeps the first item for each key, preserving order. */
+export function uniqueBy<T>(items: T[], key: (item: T) => string): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const k = key(item);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+export type CardVariant = 'hero' | 'square' | 'overlay';
+
+// Grid rhythm of 4: wide hero, two squares, wide overlay.
+export function getCardVariant(index: number): CardVariant {
   const pos = index % 4;
-  return pos === 0 || pos === 3;
+  if (pos === 0) return 'hero';
+  if (pos === 3) return 'overlay';
+  return 'square';
+}
+
+export function isWideCard(index: number): boolean {
+  return getCardVariant(index) !== 'square';
 }
 
 export function buildRecipesCacheKey(ingredients: string[], exclude: string[] = []): string {
-  return 'v5:fc:' + [...ingredients].sort().join(',') + '|x:' + [...exclude].sort().join(',');
+  return 'v6:fc:' + [...ingredients].sort().join(',') + '|x:' + [...exclude].sort().join(',');
 }

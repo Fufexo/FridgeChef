@@ -1,7 +1,10 @@
 import { RecipeSuggestion } from '@/types';
-import { normalizeText } from '@/lib/utils';
+import { normalizeText, uniqueBy } from '@/lib/utils';
 
 const imageCache = new Map<string, string | null>();
+// Image search must never hold up the recipe response for long
+const IMAGE_TIMEOUT_MS = 5_000;
+const IMAGE_DEADLINE_MS = 9_000;
 
 interface ResolveImageOptions {
   usedUrls?: Set<string>;
@@ -143,18 +146,6 @@ function scoreCandidate(candidate: ImageCandidate, queryTokens: string[]): numbe
   return overlap * 5 + genericFoodHits * 0.8 + sourceBoost - unpreparedPenalty - primaryPenalty;
 }
 
-function dedupeCandidates(candidates: ImageCandidate[]): ImageCandidate[] {
-  const seen = new Set<string>();
-  const unique: ImageCandidate[] = [];
-
-  for (const candidate of candidates) {
-    if (seen.has(candidate.url)) continue;
-    seen.add(candidate.url);
-    unique.push(candidate);
-  }
-
-  return unique;
-}
 
 export function buildRecipeImageQuery(recipe: Pick<RecipeSuggestion, 'name' | 'availableIngredients' | 'dietaryTags' | 'imageQuery'>): string {
   if (recipe.imageQuery?.trim()) {
@@ -196,6 +187,7 @@ async function searchOpenverseImageCandidates(query: string): Promise<ImageCandi
   url.searchParams.set('filter_dead', 'true');
 
   const res = await fetch(url.toString(), {
+    signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS),
     headers: {
       Accept: 'application/json',
     },
@@ -246,6 +238,7 @@ async function searchPexelsImageCandidates(query: string): Promise<ImageCandidat
   url.searchParams.set('size', 'large');
 
   const res = await fetch(url.toString(), {
+    signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS),
     headers: {
       Accept: 'application/json',
       Authorization: apiKey,
@@ -292,16 +285,22 @@ export async function resolveRecipeImageUrl(
   }
 
   const attempts = reduceQuery(buildRecipeImageQuery(recipe));
+  const deadline = Date.now() + IMAGE_DEADLINE_MS;
   for (const attempt of attempts) {
     if (!attempt) continue;
+    if (Date.now() > deadline) break;
     try {
       const [pexelsCandidates, openverseCandidates] = await Promise.all([
-        searchPexelsImageCandidates(attempt),
-        searchOpenverseImageCandidates(attempt),
+        // A slow or failing source must not discard the other one's results
+        searchPexelsImageCandidates(attempt).catch(() => []),
+        searchOpenverseImageCandidates(attempt).catch((error: unknown) => {
+          if (error instanceof Error && error.message === 'Openverse rate limit') throw error;
+          return [];
+        }),
       ]);
 
       const queryTokens = tokenize(attempt);
-      const ranked = dedupeCandidates([...pexelsCandidates, ...openverseCandidates])
+      const ranked = uniqueBy([...pexelsCandidates, ...openverseCandidates], (c) => c.url)
         .map((candidate) => ({ candidate, score: scoreCandidate(candidate, queryTokens) }))
         .filter((item) => item.score >= 1)
         .sort((a, b) => b.score - a.score);
