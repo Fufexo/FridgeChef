@@ -2,19 +2,10 @@
 
 import RecipeCard from './RecipeCard';
 import { RecipeSuggestion } from '@/types';
-import { isWideCard } from '@/lib/utils';
+import { getCardVariant, isWideCard } from '@/lib/utils';
 
 interface Props {
   recipes: RecipeSuggestion[];
-}
-
-type Variant = 'hero' | 'square' | 'overlay';
-
-function getVariant(index: number): Variant {
-  const pos = index % 4;
-  if (pos === 0) return 'hero';
-  if (pos === 3) return 'overlay';
-  return 'square';
 }
 
 export default function RecipeGrid({ recipes }: Props) {
@@ -32,7 +23,7 @@ export default function RecipeGrid({ recipes }: Props) {
             key={recipe.id}
             className={isWideCard(i) ? 'lg:col-span-2' : 'lg:col-span-1'}
           >
-            <RecipeCard recipe={recipe} index={i} variant={getVariant(i)} />
+            <RecipeCard recipe={recipe} index={i} variant={getCardVariant(i)} />
           </div>
         ))}
       </div>

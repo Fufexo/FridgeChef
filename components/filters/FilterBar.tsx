@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { useClickOutside } from '@/lib/hooks/useClickOutside';
 import { Clock, BarChart2, Leaf, ChevronDown } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '@/lib/store';
 
 const TIME_OPTIONS = [
@@ -82,7 +83,7 @@ function PillDropdown({ icon, label, options, value, onChange }: PillDropdownPro
 }
 
 export default function FilterBar() {
-  const { filters, setFilter } = useStore();
+  const { filters, setFilter } = useStore(useShallow((s) => ({ filters: s.filters, setFilter: s.setFilter })));
 
   return (
     <div className="flex flex-wrap gap-2.5">

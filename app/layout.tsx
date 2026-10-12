@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans, Be_Vietnam_Pro } from 'next/font/google';
+import StoreHydrator from '@/components/layout/StoreHydrator';
 import './globals.css';
 
 const headline = Plus_Jakarta_Sans({
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es" className={`${headline.variable} ${body.variable}`}>
       <body className="min-h-screen bg-surface text-on-surface antialiased pb-24 md:pb-0">
+        <StoreHydrator />
         {children}
       </body>
     </html>

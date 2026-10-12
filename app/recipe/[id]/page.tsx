@@ -1,48 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import RecipeDetailComponent from '@/components/recipes/RecipeDetail';
 import { RecipeDetail } from '@/types';
 import { useStore } from '@/lib/store';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import AppNavigation from '@/components/layout/AppNavigation';
+import PageShell from '@/components/layout/PageShell';
 
-function PageShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen bg-surface text-on-surface">
-      <AppNavigation activeTab="recipes" backHref="/" />
-      {children}
-    </div>
-  );
-}
 
 export default function RecipeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const hasHydrated = useStore((s) => s.hasHydrated);
+  const base = useStore((s) => s.recipes.find((r) => r.id === id));
+  const selectedIngredients = useStore((s) => s.selectedIngredients);
   const [recipe, setRecipe] = useState<RecipeDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const { recipes, selectedIngredients } = useStore();
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    setError(false);
+    if (!base) return;
+    let cancelled = false;
 
-    async function load() {
-      const { id } = await params;
-      const base = recipes.find((r) => r.id === id);
-
-      if (!base) {
-        setError(true);
-        setLoading(false);
-        return;
-      }
-
+    async function load(recipeBase: NonNullable<typeof base>) {
       try {
-        const cacheKey = `fc-detail:${base.name}`;
+        const cacheKey = `fc-detail:${recipeBase.id}`;
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
-          setRecipe(JSON.parse(cached));
-          setLoading(false);
+          if (!cancelled) setRecipe(JSON.parse(cached));
           return;
         }
 
@@ -50,35 +34,38 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ id: str
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            recipeName: base.name,
+            recipeName: recipeBase.name,
             userIngredients: selectedIngredients.map((i) => i.name),
-            recipeBase: base,
+            recipeBase,
           }),
         });
-        if (!res.ok) { setError(true); return; }
+        if (!res.ok) throw new Error(`Error ${res.status}`);
         const data = await res.json();
         sessionStorage.setItem(cacheKey, JSON.stringify(data));
-        setRecipe(data);
+        if (!cancelled) setRecipe(data);
       } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
+        if (!cancelled) setFailed(true);
       }
     }
-    load();
+    load(base);
+    return () => { cancelled = true; };
+    // Only refetch when the recipe itself changes, not on ingredient edits
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [base?.id]);
+
+  const loading = !hasHydrated || (!!base && !recipe && !failed);
+  const error = hasHydrated && (!base || failed);
 
   if (loading) {
     return (
-      <PageShell>
-        <div className="max-w-2xl mx-auto px-4 py-12">
+      <PageShell activeTab="recipes" backHref="/">
+        <div className="max-w-2xl mx-auto py-4">
           <p className="text-on-surface-variant text-sm mb-4">Cargando receta...</p>
           <div className="animate-pulse space-y-4">
-            <div className="h-6 bg-gray-200 rounded-full w-1/2" />
-            <div className="h-4 bg-gray-200 rounded-full w-1/3" />
-            <div className="h-32 bg-gray-200 rounded-2xl" />
-            <div className="h-48 bg-gray-200 rounded-2xl" />
+            <div className="h-6 bg-surface-container rounded-full w-1/2" />
+            <div className="h-4 bg-surface-container rounded-full w-1/3" />
+            <div className="h-32 bg-surface-container rounded-2xl" />
+            <div className="h-48 bg-surface-container rounded-2xl" />
           </div>
         </div>
       </PageShell>
@@ -87,9 +74,9 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ id: str
 
   if (error || !recipe) {
     return (
-      <PageShell>
-        <div className="max-w-2xl mx-auto px-4 py-12 text-center">
-          <p className="text-gray-500 mb-4">No se pudo cargar la receta.</p>
+      <PageShell activeTab="recipes" backHref="/">
+        <div className="max-w-2xl mx-auto py-4 text-center">
+          <p className="text-on-surface-variant mb-4">No se pudo cargar la receta.</p>
           <Link href="/" className="inline-flex items-center gap-2 text-primary hover:underline text-sm">
             <ArrowLeft size={14} /> Volver al inicio
           </Link>
@@ -98,5 +85,9 @@ export default function RecipeDetailPage({ params }: { params: Promise<{ id: str
     );
   }
 
-  return <RecipeDetailComponent recipe={recipe} />;
+  return (
+    <PageShell activeTab="recipes" backHref="/">
+      <RecipeDetailComponent recipe={recipe} />
+    </PageShell>
+  );
 }

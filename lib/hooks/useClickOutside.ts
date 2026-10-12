@@ -7,7 +7,9 @@ export function useClickOutside<T extends HTMLElement>(
   onClickOutside: () => void
 ) {
   const callbackRef = useRef(onClickOutside);
-  callbackRef.current = onClickOutside;
+  useEffect(() => {
+    callbackRef.current = onClickOutside;
+  });
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {

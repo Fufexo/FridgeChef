@@ -2,16 +2,17 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { motion, type Variants } from 'framer-motion';
-import { Clock, ImageOff, Users } from 'lucide-react';
+import { ImageOff } from 'lucide-react';
 import Link from 'next/link';
 import { RecipeSuggestion } from '@/types';
-import { DIFFICULTY_LABEL } from '@/lib/constants';
-import { castInt } from '@/lib/utils';
+import type { CardVariant } from '@/lib/utils';
+import MatchBadge from './MatchBadge';
+import RecipeMeta from './RecipeMeta';
 
 interface Props {
   recipe: RecipeSuggestion;
   index: number;
-  variant: 'hero' | 'square' | 'overlay';
+  variant: CardVariant;
 }
 
 function CardPhoto({ photo, alt, overlayClass }: { photo: string | null | undefined; alt: string; overlayClass: string }) {
@@ -41,20 +42,6 @@ const cardVariants: Variants = {
   }),
 };
 
-
-function MatchBadge({ pct }: { pct: number }) {
-  const style =
-    pct === 100 ? 'bg-primary/90 text-white' :
-    pct >= 75   ? 'bg-tertiary/90 text-white' :
-    pct >= 50   ? 'bg-secondary/90 text-white' :
-                  'bg-error/90 text-white';
-  return (
-    <span className={`${style} backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl`}>
-      {pct}% coincidencia
-    </span>
-  );
-}
-
 export default function RecipeCard({ recipe, index, variant }: Props) {
   const photo = recipe.imageUrl;
 
@@ -77,11 +64,7 @@ export default function RecipeCard({ recipe, index, variant }: Props) {
           <h3 className="text-2xl font-bold text-white tracking-tight leading-tight max-w-[20ch]">
             {recipe.name}
           </h3>
-          <div className="flex items-center gap-4 text-white/80 text-sm font-medium">
-            <span className="flex items-center gap-1"><Clock size={14} /> {castInt(recipe.estimatedTime)} min</span>
-            <span className="flex items-center gap-1"><Users size={14} /> {recipe.servings} porciones</span>
-            <span className="capitalize">{DIFFICULTY_LABEL[recipe.difficulty] ?? recipe.difficulty}</span>
-          </div>
+          <RecipeMeta recipe={recipe} className="text-white/80 text-sm" />
         </Link>
       </motion.div>
     );
@@ -102,18 +85,10 @@ export default function RecipeCard({ recipe, index, variant }: Props) {
           </div>
         </div>
 
-        <div className="flex justify-between items-start gap-3">
-          <div>
-            <h3 className={`font-bold text-on-surface tracking-tight mb-1 leading-snug group-hover:text-primary transition-colors ${variant === 'hero' ? 'text-[30px]' : 'text-[28px] md:text-[24px]'}`}>
-              {recipe.name}
-            </h3>
-            <div className="flex items-center gap-4 text-on-surface-variant text-xs font-medium">
-              <span className="flex items-center gap-1"><Clock size={13} /> {castInt(recipe.estimatedTime)} min</span>
-              <span className="flex items-center gap-1"><Users size={14} /> {recipe.servings} porciones</span>
-              <span className="capitalize hidden sm:inline">{DIFFICULTY_LABEL[recipe.difficulty] ?? recipe.difficulty}</span>
-            </div>
-          </div>
-        </div>
+        <h3 className={`font-bold text-on-surface tracking-tight mb-1 leading-snug group-hover:text-primary transition-colors ${variant === 'hero' ? 'text-[30px]' : 'text-[28px] md:text-[24px]'}`}>
+          {recipe.name}
+        </h3>
+        <RecipeMeta recipe={recipe} compact className="text-on-surface-variant text-xs" />
       </Link>
     </motion.div>
   );

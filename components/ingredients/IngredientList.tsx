@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import IngredientChip from './IngredientChip';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '@/lib/store';
 
 const MAX_VISIBLE = 3;
 
 export default function IngredientList() {
-  const { selectedIngredients, removeIngredient, clearIngredients } = useStore();
+  const { selectedIngredients, removeIngredient, clearIngredients } = useStore(useShallow((s) => ({ selectedIngredients: s.selectedIngredients, removeIngredient: s.removeIngredient, clearIngredients: s.clearIngredients })));
   const [expanded, setExpanded] = useState(false);
 
   if (selectedIngredients.length === 0) return null;

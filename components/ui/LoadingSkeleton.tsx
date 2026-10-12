@@ -4,11 +4,11 @@ import { isWideCard } from '@/lib/utils';
 
 export default function LoadingSkeleton() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-7">
       {Array.from({ length: 4 }).map((_, i) => (
         <div
           key={i}
-          className="animate-pulse"
+          className={`animate-pulse ${isWideCard(i) ? 'lg:col-span-2' : ''}`}
         >
           <div className={`rounded-3xl bg-surface-container ${isWideCard(i) ? 'aspect-video' : 'aspect-square'} mb-3`} />
           <div className="h-4 bg-surface-container rounded-full w-3/4 mb-3" />

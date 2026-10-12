@@ -1,36 +1,39 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useFlash } from '@/lib/hooks/useFlash';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Check, Copy, Share2, ShoppingBag, X } from 'lucide-react';
+import { Check, Copy, Share2, ShoppingBag } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
+import type { ShoppingItem } from '@/types';
 import { useStore } from '@/lib/store';
-import { CUSTOM_SHOPPING_GROUP as CUSTOM_GROUP } from '@/lib/constants';
+import { useFlash } from '@/lib/hooks/useFlash';
+import { CUSTOM_SHOPPING_GROUP } from '@/lib/constants';
+import ShoppingGroupCard from './ShoppingGroupCard';
+import CustomItemsCard from './CustomItemsCard';
 
-const badgeTones = [
-  'text-secondary bg-secondary-container/35',
-  'text-tertiary bg-primary-container/35',
-  'text-primary bg-primary-container/45',
-] as const;
+function buildListText(items: ShoppingItem[]): string {
+  return ['Lista de compras — FridgeChef', ...items.map((i) => `- ${i.emoji} ${i.name} (${i.forRecipe})`)].join('\n');
+}
 
 export default function ShoppingList() {
-  const { shoppingList, addToShoppingList, removeFromShoppingList } = useStore();
+  const { hasHydrated, shoppingList } = useStore(useShallow((s) => ({ hasHydrated: s.hasHydrated, shoppingList: s.shoppingList })));
   const [copyDone, flashCopyDone] = useFlash();
   const [shareDone, flashShareDone] = useFlash();
-  const [customItemInput, setCustomItemInput] = useState('');
 
   const { groupedEntries, customItems } = useMemo(() => {
-    const grouped = shoppingList.reduce<Record<string, typeof shoppingList>>((acc, item) => {
-      if (!acc[item.forRecipe]) acc[item.forRecipe] = [];
-      acc[item.forRecipe].push(item);
+    const grouped = shoppingList.reduce<Record<string, ShoppingItem[]>>((acc, item) => {
+      (acc[item.forRecipe] ??= []).push(item);
       return acc;
     }, {});
     return {
-      groupedEntries: Object.entries(grouped).filter(([name]) => name !== CUSTOM_GROUP),
-      customItems: grouped[CUSTOM_GROUP] ?? [],
+      groupedEntries: Object.entries(grouped).filter(([name]) => name !== CUSTOM_SHOPPING_GROUP),
+      customItems: grouped[CUSTOM_SHOPPING_GROUP] ?? [],
     };
   }, [shoppingList]);
+
+  // Avoid flashing the empty state before localStorage has loaded
+  if (!hasHydrated) return null;
 
   if (shoppingList.length === 0) {
     return (
@@ -50,29 +53,21 @@ export default function ShoppingList() {
     );
   }
 
-  function buildListText() {
-    return shoppingList.map((i) => `- ${i.emoji} ${i.name} (${i.forRecipe})`).join('\n');
-  }
+  const listText = buildListText(shoppingList);
 
   function handleCopyList() {
-    navigator.clipboard.writeText(buildListText()).then(() => flashCopyDone());
+    navigator.clipboard.writeText(listText).then(flashCopyDone);
   }
 
   async function handleShare() {
+    // The list lives in this browser only, so share its text rather than the page URL
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'FridgeChef', text: buildListText(), url: window.location.href });
+        await navigator.share({ title: 'Lista de compras — FridgeChef', text: listText });
         return;
-      } catch { /* user cancelled */ }
+      } catch { /* cancelled or unsupported — fall back to copying */ }
     }
-    navigator.clipboard.writeText(window.location.href).then(() => flashShareDone());
-  }
-
-  function handleAddCustomItem() {
-    const name = customItemInput.trim();
-    if (!name) return;
-    addToShoppingList([{ name, emoji: '🛍️', forRecipe: CUSTOM_GROUP }]);
-    setCustomItemInput('');
+    navigator.clipboard.writeText(listText).then(flashShareDone);
   }
 
   return (
@@ -100,93 +95,17 @@ export default function ShoppingList() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-outline-variant/35 bg-surface-container-lowest text-primary font-bold text-sm hover:bg-surface-container-low transition-colors"
           >
             {shareDone ? <Check size={15} /> : <Share2 size={15} />}
-            {shareDone ? 'Enlace copiado' : 'Compartir'}
+            {shareDone ? 'Lista copiada' : 'Compartir'}
           </button>
         </div>
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 xl:gap-6 items-start">
         {groupedEntries.map(([recipeName, items], index) => (
-          <article
-            key={recipeName}
-            className="bg-surface-container-lowest rounded-[28px] p-4 md:p-5 shadow-[0_8px_28px_rgba(45,47,45,0.05)] border border-black/5"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-headline font-bold text-lg leading-tight">{recipeName}</h3>
-              <span className={`text-[11px] font-extrabold uppercase tracking-[0.12em] whitespace-nowrap px-3 py-1 rounded-full ${badgeTones[index % badgeTones.length]}`}>
-                {items.length} {items.length === 1 ? 'item' : 'items'}
-              </span>
-            </div>
-
-            <ul className="space-y-2">
-              {items.map((item) => (
-                <li key={item.name}>
-                  <label className="flex items-center gap-3 rounded-[18px] bg-surface-container-low/65 hover:bg-surface-container transition-colors px-4 py-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={false}
-                      onChange={() => removeFromShoppingList(item.name)}
-                      className="w-4.5 h-4.5 rounded-full border-outline-variant text-primary focus:ring-primary focus:ring-offset-0"
-                    />
-                    <span className="text-xl leading-none">{item.emoji}</span>
-                    <span className="text-[17px] font-semibold text-on-surface capitalize">{item.name}</span>
-                    <span className="ml-auto text-[10px] uppercase tracking-wider font-semibold text-on-surface-variant/80">
-                      Comprado
-                    </span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </article>
+          <ShoppingGroupCard key={recipeName} recipeName={recipeName} items={items} index={index} />
         ))}
 
-        <article className="bg-primary-container/35 border border-primary/10 rounded-[28px] p-5 flex flex-col min-h-72">
-          <div className="w-11 h-11 rounded-2xl bg-primary text-on-primary flex items-center justify-center mb-3 mx-auto">
-            <ShoppingBag size={18} />
-          </div>
-          <p className="font-bold text-primary text-xl mb-1 text-center">¿Necesitas más?</p>
-          <p className="text-xs text-on-surface-variant mb-4 text-center">Agrega productos personalizados a tu lista.</p>
-
-          <div className="rounded-2xl bg-surface-container-lowest/80 border border-black/5 p-3 space-y-3">
-            <p className="text-[11px] uppercase tracking-wider text-on-surface-variant font-bold">Lista personalizada</p>
-
-            <div className="space-y-2 max-h-28 overflow-y-auto no-scrollbar">
-              {customItems.length === 0 && (
-                <p className="text-xs text-on-surface-variant">Sin items aún.</p>
-              )}
-              {customItems.map((item) => (
-                <div key={item.name} className="flex items-center gap-2 text-sm">
-                  <span>{item.emoji}</span>
-                  <span className="font-medium capitalize text-on-surface flex-1">{item.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeFromShoppingList(item.name)}
-                    className="w-6 h-6 inline-flex items-center justify-center rounded-full text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-colors"
-                    aria-label={`Eliminar: ${item.name}`}
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 items-center">
-              <input
-                value={customItemInput}
-                onChange={(e) => setCustomItemInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustomItem(); } }}
-                placeholder="Ej: pan integral, yogur, limón..."
-                className="min-w-0 rounded-xl border border-outline-variant/35 bg-white px-3 py-2 text-sm outline-none focus:border-primary"
-              />
-              <button
-                onClick={handleAddCustomItem}
-                className="shrink-0 inline-flex items-center gap-1 whitespace-nowrap bg-primary text-on-primary px-3.5 py-2 rounded-xl text-xs font-bold hover:brightness-105 transition-all"
-              >
-                Agregar
-              </button>
-            </div>
-          </div>
-        </article>
+        <CustomItemsCard items={customItems} />
 
         <article className="relative min-h-72 rounded-[28px] overflow-hidden border border-black/5 shadow-[0_8px_28px_rgba(45,47,45,0.08)]">
           <Image
