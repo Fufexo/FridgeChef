@@ -4,6 +4,7 @@ import { Award, Clock, Flame, Star, Utensils } from 'lucide-react';
 import type { RecipeDetail } from '@/types';
 import { DIFFICULTY_LABEL } from '@/lib/constants';
 import { castInt } from '@/lib/utils';
+import { responsiveImage } from '@/lib/image-url';
 import { matchTone } from '../MatchBadge';
 
 const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 } };
@@ -52,7 +53,9 @@ export default function RecipeHero({ recipe }: { recipe: RecipeDetail }) {
           <div className="relative rounded-3xl overflow-hidden shadow-2xl">
             {recipe.imageUrl ? (
               <img
-                src={recipe.imageUrl}
+                {...responsiveImage(recipe.imageUrl)}
+                sizes="(min-width: 1024px) 460px, 100vw"
+                fetchPriority="high"
                 alt={recipe.name}
                 className="relative w-full aspect-square object-cover hover:scale-[1.02] transition-transform duration-500"
               />

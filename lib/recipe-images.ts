@@ -207,7 +207,8 @@ async function searchOpenverseImageCandidates(query: string): Promise<ImageCandi
 
   const candidates: ImageCandidate[] = [];
   for (const item of results) {
-    const urlValue = item?.url ?? item?.thumbnail ?? null;
+    // Openverse's thumbnail is a resized WebP (~5x lighter than the original JPEG)
+    const urlValue = item?.thumbnail ?? item?.url ?? null;
     if (!urlValue) continue;
 
     const tagsText = Array.isArray(item?.tags)
