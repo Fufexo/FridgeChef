@@ -29,6 +29,12 @@ describe('boundedSet', () => {
     boundedSet(cache, 'c', 3, 2);
     expect([...cache.keys()]).toEqual(['b', 'c']);
   });
+
+  it('updating an existing key refreshes it without evicting others', () => {
+    const cache = new Map<string, number>([['a', 1], ['b', 2]]);
+    boundedSet(cache, 'a', 10, 2);
+    expect([...cache.entries()]).toEqual([['b', 2], ['a', 10]]);
+  });
 });
 
 describe('isRateLimited', () => {

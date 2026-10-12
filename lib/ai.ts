@@ -9,8 +9,10 @@ const GEMINI_MODELS = (process.env.GEMINI_MODELS ?? 'gemini-flash-lite-latest,ge
 const GROQ_MODEL = process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b';
 const TIMEOUT_MS = 20_000;
 
-// Skip a model for a while after it runs out of quota instead of paying a failed call each time
+// Skip a provider for a while after it runs out of quota (or rejects our request outright)
+// instead of paying a failed round-trip on every request
 const QUOTA_COOLDOWN_MS = 5 * 60_000;
+const BROKEN_COOLDOWN_MS = 30 * 60_000;
 const exhaustedUntil = new Map<string, number>();
 
 function isExhausted(model: string): boolean {
@@ -104,15 +106,22 @@ async function generateJson(prompt: string, schema: GeminiSchema): Promise<unkno
     });
   }
 
+  const available = providers.filter((p) => !isExhausted(p.name));
+  // Everything is cooling down after quota errors: report it as quota so the user is told to wait
+  if (providers.length && !available.length) throw new Error('quota');
+
   let lastError: unknown = new Error('No AI provider configured');
-  for (const provider of providers) {
-    if (isExhausted(provider.name)) continue;
+  for (const provider of available) {
     try {
       return await provider.call();
     } catch (err) {
       lastError = err;
-      if (err instanceof Error && err.message === 'quota') {
+      const message = err instanceof Error ? err.message : '';
+      if (message === 'quota') {
         exhaustedUntil.set(provider.name, Date.now() + QUOTA_COOLDOWN_MS);
+      } else if (/API error (400|401|403|404)/.test(message)) {
+        // Bad model name, unsupported config or bad key: retrying soon won't help
+        exhaustedUntil.set(provider.name, Date.now() + BROKEN_COOLDOWN_MS);
       }
       console.warn(`[ai] ${provider.name} failed:`, err instanceof Error ? err.message.slice(0, 200) : err);
     }

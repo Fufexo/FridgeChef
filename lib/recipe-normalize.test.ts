@@ -34,6 +34,15 @@ describe('normalizeRecipes', () => {
     expect(r.missingIngredients).toEqual(['pimiento']);
   });
 
+  it('keeps different products that share a word as missing', () => {
+    const [r] = normalizeRecipes(
+      { recipes: [{ ...base, availableIngredients: ['arroz'], missingIngredients: ['leche de coco', 'vinagre de arroz', 'Leches'] }] },
+      ['arroz', 'leche']
+    );
+    expect(r.missingIngredients).toEqual(['leche de coco', 'vinagre de arroz']);
+    expect(r.availableIngredients).toEqual(['arroz', 'leche']);
+  });
+
   it('ignores pantry staples when counting missing ingredients', () => {
     const [r] = normalizeRecipes(
       { recipes: [{ ...base, missingIngredients: ['sal', 'Aceite de oliva', 'agua'] }] },

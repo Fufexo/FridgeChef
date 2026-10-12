@@ -25,15 +25,19 @@ function containsAllWords(haystack: string[], needle: string[]): boolean {
   return needle.length > 0 && needle.every((n) => haystack.some((h) => sameWord(h, n)));
 }
 
-/** Returns the user's own ingredient name that `name` refers to, or null. */
-function findUserIngredient(name: string, userIngredients: string[]): string | null {
+/**
+ * Returns the user's own ingredient name that `name` refers to, or null.
+ * - loose: word containment ("pechuga de pollo" → "pollo"). Only safe when the model
+ *   already claims the user has it, because "leche de coco" also contains "leche".
+ * - strict: same words, tolerant of plurals ("huevos" → "huevo").
+ */
+function findUserIngredient(name: string, userIngredients: string[], loose: boolean): string | null {
   const nameWords = words(name);
   for (const user of userIngredients) {
     const userWords = words(user);
-    // "pechuga de pollo" uses "pollo"; "tomate" covers "tomate cherry"
-    if (containsAllWords(nameWords, userWords) || containsAllWords(userWords, nameWords)) {
-      return user;
-    }
+    const sameWords = containsAllWords(nameWords, userWords) && containsAllWords(userWords, nameWords);
+    const related = containsAllWords(nameWords, userWords) || containsAllWords(userWords, nameWords);
+    if (loose ? related : sameWords) return user;
   }
   return null;
 }
@@ -66,13 +70,14 @@ export function normalizeRecipes(raw: unknown, userIngredients: string[]): Omit<
     const missing: string[] = [];
 
     for (const ing of stringList(r.availableIngredients)) {
-      const owned = findUserIngredient(ing, userIngredients);
+      const owned = findUserIngredient(ing, userIngredients, true);
       // Drop ingredients the model claims the user has but they never entered
       if (owned) available.push(owned);
     }
     for (const ing of stringList(r.missingIngredients)) {
       if (PANTRY_STAPLES.has(normalizeText(ing))) continue;
-      const owned = findUserIngredient(ing, userIngredients);
+      // A missing "leche de coco" is not the user's "leche" — only exact names move over
+      const owned = findUserIngredient(ing, userIngredients, false);
       if (owned) available.push(owned);
       else missing.push(ing);
     }

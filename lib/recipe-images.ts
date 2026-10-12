@@ -276,47 +276,43 @@ export async function resolveRecipeImageUrl(
 ): Promise<string | null> {
   const { usedUrls } = options;
   const key = `${recipe.name}|${recipe.availableIngredients.join('|')}|${recipe.dietaryTags.join('|')}|${recipe.imageQuery ?? ''}`;
-  if (imageCache.has(key)) {
-    const cached = imageCache.get(key) ?? null;
-    if (cached && usedUrls?.has(cached)) {
-      return null;
-    }
-    return cached;
-  }
+  const cached = imageCache.get(key);
+  // A cached URL already taken by another card falls through to a fresh search for the next best one
+  if (cached !== undefined && !(cached && usedUrls?.has(cached))) return cached;
 
   const attempts = reduceQuery(buildRecipeImageQuery(recipe));
   const deadline = Date.now() + IMAGE_DEADLINE_MS;
+  let openverseLimited = false;
+
   for (const attempt of attempts) {
     if (!attempt) continue;
     if (Date.now() > deadline) break;
-    try {
-      const [pexelsCandidates, openverseCandidates] = await Promise.all([
-        // A slow or failing source must not discard the other one's results
-        searchPexelsImageCandidates(attempt).catch(() => []),
-        searchOpenverseImageCandidates(attempt).catch((error: unknown) => {
-          if (error instanceof Error && error.message === 'Openverse rate limit') throw error;
-          return [];
-        }),
-      ]);
 
-      const queryTokens = tokenize(attempt);
-      const ranked = uniqueBy([...pexelsCandidates, ...openverseCandidates], (c) => c.url)
-        .map((candidate) => ({ candidate, score: scoreCandidate(candidate, queryTokens) }))
-        .filter((item) => item.score >= 1)
-        .sort((a, b) => b.score - a.score);
+    // A slow, failing or rate-limited source must not discard the other one's results
+    const [pexelsCandidates, openverseCandidates] = await Promise.all([
+      searchPexelsImageCandidates(attempt).catch(() => []),
+      openverseLimited
+        ? Promise.resolve([])
+        : searchOpenverseImageCandidates(attempt).catch((error: unknown) => {
+            if (error instanceof Error && error.message === 'Openverse rate limit') openverseLimited = true;
+            return [];
+          }),
+    ]);
 
-      for (const item of ranked) {
-        if (usedUrls?.has(item.candidate.url)) continue;
-        imageCache.set(key, item.candidate.url);
-        return item.candidate.url;
-      }
-    } catch (error) {
-      if (error instanceof Error && error.message === 'Openverse rate limit') {
-        break;
-      }
+    const queryTokens = tokenize(attempt);
+    const best = uniqueBy([...pexelsCandidates, ...openverseCandidates], (c) => c.url)
+      .map((candidate) => ({ candidate, score: scoreCandidate(candidate, queryTokens) }))
+      .filter((item) => item.score >= 1 && !usedUrls?.has(item.candidate.url))
+      .sort((a, b) => b.score - a.score)[0];
+
+    if (best) {
+      imageCache.set(key, best.candidate.url);
+      return best.candidate.url;
     }
   }
 
+  // Don't remember a miss caused by a transient rate limit or timeout budget
+  if (openverseLimited || Date.now() > deadline) return null;
   imageCache.set(key, null);
   return null;
 }

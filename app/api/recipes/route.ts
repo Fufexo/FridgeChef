@@ -3,11 +3,11 @@ import { getRecipeSuggestions } from '@/lib/ai';
 import { normalizeRecipes } from '@/lib/recipe-normalize';
 import { resolveRecipeImageUrl } from '@/lib/recipe-images';
 import { RecipeSuggestion } from '@/types';
+import { buildRecipesCacheKey } from '@/lib/utils';
 import { boundedSet, isRateLimited, publicErrorMessage, sanitizeList } from '@/lib/api-guard';
 
 // In-memory cache — persists for the lifetime of the server process
 const cache = new Map<string, RecipeSuggestion[]>();
-const CACHE_VERSION = 'v6';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'No ingredients provided' }, { status: 400 });
     }
 
-    const cacheKey = `${CACHE_VERSION}:` + [...ingredients].sort().join(',') + '|x:' + [...exclude].sort().join(',');
+    // Same versioned key as the client cache, so bumping the version invalidates both
+    const cacheKey = buildRecipesCacheKey(ingredients, exclude);
     if (cache.has(cacheKey)) {
       return Response.json({ recipes: cache.get(cacheKey), cached: true });
     }

@@ -13,9 +13,11 @@ export function sanitizeList(value: unknown, maxItems = MAX_ITEMS): string[] {
     .slice(0, maxItems);
 }
 
-/** Map-based cache that evicts the oldest entry once it reaches `max`. */
+/** Map-based LRU-by-write cache: updating a key refreshes it; adding past `max` evicts the stalest. */
 export function boundedSet<K, V>(cache: Map<K, V>, key: K, value: V, max = 300) {
-  if (cache.size >= max) {
+  if (cache.has(key)) {
+    cache.delete(key);
+  } else if (cache.size >= max) {
     const oldest = cache.keys().next().value;
     if (oldest !== undefined) cache.delete(oldest);
   }
