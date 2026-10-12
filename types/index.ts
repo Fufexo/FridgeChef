@@ -30,6 +30,12 @@ export interface RecipeDetail extends RecipeSuggestion {
   calories?: number | null;
 }
 
+export interface Filters {
+  maxTime: number | null;
+  difficulty: RecipeSuggestion['difficulty'] | null;
+  dietaryTag: string | null;
+}
+
 export interface ShoppingItem {
   name: string;
   emoji: string;

@@ -2,13 +2,7 @@
 
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { Ingredient, RecipeSuggestion, ShoppingItem } from '@/types';
-
-interface Filters {
-  maxTime: number | null;
-  difficulty: string | null;
-  dietaryTag: string | null;
-}
+import { Filters, Ingredient, RecipeSuggestion, ShoppingItem } from '@/types';
 
 interface AppStore {
   // True once persisted state has been loaded from localStorage
@@ -33,7 +27,7 @@ interface AppStore {
 
   // Filtros
   filters: Filters;
-  setFilter: (key: keyof Filters, value: number | string | null) => void;
+  setFilter: <K extends keyof Filters>(key: K, value: Filters[K]) => void;
 
   // Lista de compras
   shoppingList: ShoppingItem[];
@@ -102,7 +96,7 @@ export const useStore = create<AppStore>()(
         recipesFor: state.recipesFor,
         shoppingList: state.shoppingList,
       }),
-      // Rehydrated manually by <StoreHydrator /> after mount to avoid SSR hydration mismatches
+      // Rehydrated manually by <Providers /> after mount to avoid SSR hydration mismatches
       skipHydration: true,
       onRehydrateStorage: () => () => useStore.setState({ hasHydrated: true }),
     }

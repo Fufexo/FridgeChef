@@ -15,7 +15,7 @@ interface Props {
   variant: CardVariant;
 }
 
-function CardPhoto({ photo, alt, overlayClass }: { photo: string | null | undefined; alt: string; overlayClass: string }) {
+function CardPhoto({ photo, alt, overlayClass, priority = false }: { photo: string | null | undefined; alt: string; overlayClass: string; priority?: boolean }) {
   if (!photo) {
     return (
       <div className="absolute inset-0 bg-linear-to-br from-surface-container-high via-surface-container to-surface-container-lowest flex items-center justify-center text-center p-6">
@@ -28,7 +28,14 @@ function CardPhoto({ photo, alt, overlayClass }: { photo: string | null | undefi
   }
   return (
     <>
-      <img src={photo} alt={alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+      <img
+        src={photo}
+        alt={alt}
+        // The first card is usually the LCP element: load it eagerly with high priority
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'auto'}
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
       <div className={`absolute inset-0 ${overlayClass}`} />
     </>
   );
@@ -79,7 +86,7 @@ export default function RecipeCard({ recipe, index, variant }: Props) {
     >
       <Link href={`/recipe/${recipe.id}`}>
         <div className={`relative overflow-hidden rounded-3xl ${aspectClass} mb-3`}>
-          <CardPhoto photo={photo} alt={recipe.name} overlayClass="bg-linear-to-t from-black/45 via-transparent to-transparent" />
+          <CardPhoto photo={photo} alt={recipe.name} overlayClass="bg-linear-to-t from-black/45 via-transparent to-transparent" priority={index === 0} />
           <div className="absolute top-4 left-4">
             <MatchBadge pct={recipe.matchPercentage} />
           </div>

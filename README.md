@@ -90,7 +90,7 @@ components/
     detail/                # Hero, ingredientes, pasos
   filters/                 # Barra de filtros
   shopping/                # Lista, tarjeta por receta, items personalizados
-  layout/                  # Navegación, PageShell, StoreHydrator
+  layout/                  # Navegación, PageShell, Providers
   ui/                      # Skeletons, estado vacío
 lib/
   ai.ts                    # Gemini + respaldo Groq, schemas y prompts

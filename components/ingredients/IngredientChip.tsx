@@ -22,7 +22,8 @@ export default function IngredientChip({ ingredient, onRemove }: Props) {
       <span className="capitalize">{ingredient.name}</span>
       <button
         onClick={() => onRemove(ingredient.id)}
-        className="ml-0.5 hover:bg-on-primary-container/10 rounded-full p-0.5 transition-colors"
+        type="button"
+        className="ml-0.5 -my-1 -mr-1 w-7 h-7 inline-flex items-center justify-center hover:bg-on-primary-container/10 rounded-full transition-colors"
         aria-label={`Eliminar ${ingredient.name}`}
       >
         <X size={12} />

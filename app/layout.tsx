@@ -1,6 +1,7 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, Be_Vietnam_Pro } from 'next/font/google';
-import StoreHydrator from '@/components/layout/StoreHydrator';
+import Providers from '@/components/layout/Providers';
+import { SITE } from '@/lib/site';
 import './globals.css';
 
 const headline = Plus_Jakarta_Sans({
@@ -18,24 +19,33 @@ const body = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: 'FridgeChef — Recetas con lo que tienes',
-  description: 'Ingresa los ingredientes que tienes y descubre qué puedes cocinar hoy.',
-  icons: {
-    icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
-    ],
-    apple: '/apple-icon.png',
+  metadataBase: new URL(SITE.url),
+  title: { default: SITE.title, template: `%s — ${SITE.name}` },
+  description: SITE.description,
+  applicationName: SITE.name,
+  keywords: ['recetas', 'ingredientes', 'qué cocinar', 'recetas con lo que tengo', 'IA', 'lista de compras'],
+  openGraph: {
+    type: 'website',
+    locale: SITE.locale,
+    siteName: SITE.name,
+    title: SITE.title,
+    description: SITE.description,
+    url: '/',
   },
-  appleWebApp: { title: 'FridgeChef' },
+  twitter: { card: 'summary_large_image', title: SITE.title, description: SITE.description },
+  // Icons come from the app/ file conventions (favicon.ico, icon.svg, apple-icon.png)
+  appleWebApp: { title: SITE.name },
+};
+
+export const viewport: Viewport = {
+  themeColor: SITE.themeColor,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${headline.variable} ${body.variable}`}>
       <body className="min-h-screen bg-surface text-on-surface antialiased pb-24 md:pb-0">
-        <StoreHydrator />
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useId, useState, useRef } from 'react';
 import { useClickOutside } from '@/lib/hooks/useClickOutside';
 import { Clock, BarChart2, Leaf, ChevronDown } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '@/lib/store';
+import type { Filters } from '@/types';
 
 const TIME_OPTIONS = [
   { label: 'Cualquier tiempo', value: null },
@@ -40,31 +41,38 @@ interface PillDropdownProps {
 function PillDropdown({ icon, label, options, value, onChange }: PillDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const listId = useId();
   const active = value !== null;
   const selectedLabel = options.find((o) => o.value === value)?.label ?? label;
 
   useClickOutside(ref, () => setOpen(false));
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative" onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}>
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-[11px] md:text-xs font-semibold transition-colors ${
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label={active ? `${label}: ${selectedLabel}` : label}
+        className={`flex items-center gap-1.5 px-3.5 py-2 min-h-10 rounded-full border text-[11px] md:text-xs font-semibold transition-colors ${
           active
             ? 'bg-primary text-on-primary border-primary shadow-[0_6px_12px_rgba(23,106,33,0.20)]'
             : 'bg-surface-container-lowest border-black/10 text-on-surface hover:bg-surface-container'
         }`}
       >
-        <span className="opacity-80">{icon}</span>
+        <span className="opacity-80" aria-hidden="true">{icon}</span>
         <span>{active ? selectedLabel : label}</span>
         <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <ul className="absolute z-30 top-full mt-2 left-0 min-w-40 bg-surface-container-lowest border border-black/10 rounded-2xl shadow-xl overflow-hidden">
+        <ul id={listId} role="listbox" aria-label={label} className="absolute z-30 top-full mt-2 left-0 min-w-40 bg-surface-container-lowest border border-black/10 rounded-2xl shadow-xl overflow-hidden">
           {options.map((opt) => (
-            <li key={String(opt.value)}>
+            <li key={String(opt.value)} role="option" aria-selected={opt.value === value}>
               <button
+                type="button"
                 onClick={() => { onChange(opt.value); setOpen(false); }}
                 className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
                   opt.value === value
@@ -99,7 +107,7 @@ export default function FilterBar() {
         label="Dificultad"
         options={DIFFICULTY_OPTIONS}
         value={filters.difficulty}
-        onChange={(v) => setFilter('difficulty', v as string | null)}
+        onChange={(v) => setFilter('difficulty', v as Filters['difficulty'])}
       />
       <PillDropdown
         icon={<Leaf size={15} />}

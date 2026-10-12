@@ -60,7 +60,7 @@ export default function RecipeIngredients({ recipe }: { recipe: RecipeDetail }) 
               key={name}
               type="button"
               onClick={() => markAsMissing(name)}
-              title="Marcar como faltante"
+              aria-label={`${name}: lo tienes. Tocar para marcar como faltante`}
               className="bg-surface-container-lowest px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-sm border border-black/5 hover:bg-error-container/15 transition-colors"
             >
               <span className="text-lg">{getIngredientEmoji(name)}</span>
@@ -79,7 +79,7 @@ export default function RecipeIngredients({ recipe }: { recipe: RecipeDetail }) 
                 <button
                   type="button"
                   onClick={() => markAsAvailable(name)}
-                  title="Marcar como disponible"
+                  aria-label={`${name}: falta. Tocar para marcar como disponible`}
                   className="w-full text-left flex items-center gap-3 bg-surface-container-lowest/75 px-4 py-3 rounded-2xl hover:bg-primary-container/30 transition-colors"
                 >
                   <span className="text-xl">{getIngredientEmoji(name)}</span>

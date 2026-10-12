@@ -43,7 +43,7 @@ export default function AppNavigation({ activeTab, backHref }: Props) {
             {backHref && (
               <Link
                 href={backHref}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-primary-container/50 transition-colors"
+                className="w-10 h-10 -ml-2 flex items-center justify-center rounded-full hover:bg-primary-container/50 transition-colors"
                 aria-label="Volver"
               >
                 <ArrowLeft size={18} className="text-primary" />
@@ -54,11 +54,12 @@ export default function AppNavigation({ activeTab, backHref }: Props) {
             </span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-7 text-sm">
+          <nav aria-label="Principal" className="hidden md:flex items-center gap-7 text-sm">
             {navItems.map((item) => (
               <Link
                 key={item.key}
                 href={item.href}
+                aria-current={activeTab === item.key ? 'page' : undefined}
                 className={activeTab === item.key
                   ? 'text-primary font-semibold'
                   : 'text-on-surface-variant hover:text-primary transition-colors'}
@@ -70,12 +71,12 @@ export default function AppNavigation({ activeTab, backHref }: Props) {
 
           <Link
             href="/shopping-list"
-            className="relative text-on-surface-variant hover:text-primary transition-colors"
-            aria-label="Compras"
+            className="relative -mr-2 w-10 h-10 inline-flex items-center justify-center rounded-full text-on-surface-variant hover:text-primary hover:bg-primary-container/40 transition-colors"
+            aria-label={shoppingCount > 0 ? `Lista de compras (${shoppingCount})` : 'Lista de compras'}
           >
             <ShoppingBasket size={22} />
             {shoppingCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 bg-primary text-on-primary text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold">
+              <span aria-hidden="true" className="absolute top-0.5 right-0.5 bg-primary text-on-primary text-xs w-4 h-4 rounded-full flex items-center justify-center font-bold">
                 {shoppingCount}
               </span>
             )}
@@ -84,21 +85,22 @@ export default function AppNavigation({ activeTab, backHref }: Props) {
         <div className="h-px w-full bg-black/5" />
       </header>
 
-      <nav className="md:hidden fixed bottom-0 left-0 w-full z-100 rounded-t-3xl bg-white/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(45,47,45,0.08)] flex justify-around items-center px-4 pt-3 pb-8">
+      <nav aria-label="Principal" className="md:hidden fixed bottom-0 left-0 w-full z-100 rounded-t-3xl bg-white/95 backdrop-blur-xl shadow-[0_-4px_20px_rgba(45,47,45,0.08)] flex justify-around items-center px-4 pt-3 pb-8">
         {navItems.map((item) => {
           const isActive = activeTab === item.key;
           return (
             <Link
               key={item.key}
               href={item.href}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex flex-col items-center gap-1 px-3 py-2 flex-1 rounded-full ${
                 isActive
                   ? `text-primary${item.activeExtraClass ? ` ${item.activeExtraClass}` : ''}`
                   : 'text-on-surface-variant'
               }`}
             >
-              {item.icon}
-              <span className="text-[9px] font-semibold uppercase tracking-wider">{item.label}</span>
+              <span aria-hidden="true">{item.icon}</span>
+              <span className="text-[10px] font-semibold uppercase tracking-wider">{item.label}</span>
             </Link>
           );
         })}

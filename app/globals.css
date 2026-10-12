@@ -8,6 +8,8 @@
   --color-on-primary-container: #005c15;
   --color-secondary: #874e00;
   --color-secondary-container: #ffc791;
+  /* Between primary (100%) and secondary (50-74%) in the match scale; white text >= 4.5:1 */
+  --color-tertiary: #2f6b4f;
   --color-on-secondary: #fff0e5;
   --color-on-secondary-container: #6a3c00;
   --color-surface: #f7f7f3;
