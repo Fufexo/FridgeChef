@@ -10,6 +10,15 @@ FridgeChef analiza lo que hay en tu nevera y genera al instante 4 recetas reales
 
 > _Agrega tus ingredientes → obtén recetas en segundos_
 
+<p align="center">
+  <a href="docs/home.png"><img src="docs/home.png" alt="Inicio de FridgeChef: ingredientes agregados y recetas ordenadas por porcentaje de coincidencia" width="100%"></a>
+</p>
+
+<p align="center">
+  <a href="docs/recipe.png"><img src="docs/recipe.png" alt="Detalle de receta: duración, dificultad, calorías, lo que tienes y lo que te falta" width="49%"></a>
+  <a href="docs/shopping-list.png"><img src="docs/shopping-list.png" alt="Lista de compras generada desde la receta, con opción de copiar y compartir" width="49%"></a>
+</p>
+
 ---
 
 ## Stack
